@@ -4,21 +4,19 @@ const {
 } = require('@expo/config-plugins');
 
 /**
- * Ensures react-native-background-actions Foreground Service is declared
- * so shake detection can keep running on the Android home screen.
+ * Declares react-native-background-actions Foreground Service so shake
+ * detection can continue on the Android home screen.
  */
 function withBackgroundActions(config) {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults;
     const app = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest);
 
-    // Permissions
     AndroidConfig.Permissions.ensurePermissions(manifest, [
       'android.permission.FOREGROUND_SERVICE',
-      'android.permission.FOREGROUND_SERVICE_SPECIAL_USE',
+      'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
       'android.permission.WAKE_LOCK',
       'android.permission.POST_NOTIFICATIONS',
-      'android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS',
     ]);
 
     if (!app.service) app.service = [];
@@ -26,25 +24,18 @@ function withBackgroundActions(config) {
     const existing = app.service.find(
       (s) => s.$?.['android:name'] === serviceName,
     );
+
     if (!existing) {
       app.service.push({
         $: {
           'android:name': serviceName,
-          'android:foregroundServiceType': 'specialUse',
+          'android:foregroundServiceType': 'dataSync',
           'android:exported': 'false',
         },
-        'property': [
-          {
-            $: {
-              'android:name': 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE',
-              'android:value':
-                'Continuous shake detection to quickly open Add Expense from the home screen',
-            },
-          },
-        ],
       });
     } else {
-      existing.$['android:foregroundServiceType'] = 'specialUse';
+      existing.$['android:foregroundServiceType'] = 'dataSync';
+      delete existing.property;
     }
 
     return config;
