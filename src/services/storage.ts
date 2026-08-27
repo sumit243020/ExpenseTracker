@@ -60,16 +60,44 @@ export async function clearUserProfile(): Promise<void> {
   await AsyncStorage.removeItem(STORAGE_KEYS.userProfile);
 }
 
-export async function saveSpreadsheetId(id: string): Promise<void> {
+export async function saveSpreadsheetId(
+  id: string,
+  email?: string,
+): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEYS.spreadsheetId, id);
+  if (email) {
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.spreadsheetEmail,
+      email.trim().toLowerCase(),
+    );
+  }
 }
 
 export async function getSpreadsheetId(): Promise<string | null> {
   return AsyncStorage.getItem(STORAGE_KEYS.spreadsheetId);
 }
 
+/** Spreadsheet cache is only valid when it belongs to this Google account. */
+export async function getSpreadsheetIdForEmail(
+  email: string,
+): Promise<string | null> {
+  const [id, boundEmail] = await Promise.all([
+    AsyncStorage.getItem(STORAGE_KEYS.spreadsheetId),
+    AsyncStorage.getItem(STORAGE_KEYS.spreadsheetEmail),
+  ]);
+  if (!id) return null;
+  if (
+    !boundEmail ||
+    boundEmail.trim().toLowerCase() !== email.trim().toLowerCase()
+  ) {
+    return null;
+  }
+  return id;
+}
+
 export async function clearSpreadsheetId(): Promise<void> {
   await AsyncStorage.removeItem(STORAGE_KEYS.spreadsheetId);
+  await AsyncStorage.removeItem(STORAGE_KEYS.spreadsheetEmail);
 }
 
 export async function getPendingQueue(): Promise<PendingExpense[]> {
@@ -137,9 +165,10 @@ export async function setShakeSensitivity(
   await AsyncStorage.setItem(STORAGE_KEYS.shakeSensitivity, level);
 }
 
-/** Clears all auth-related local data on logout. */
+/** Clears all auth-related local data on logout / account switch. */
 export async function clearAllAuthData(): Promise<void> {
   await clearTokens();
   await clearUserProfile();
   await clearSpreadsheetId();
+  await AsyncStorage.removeItem(STORAGE_KEYS.pendingQueue);
 }

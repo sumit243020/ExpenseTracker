@@ -5,7 +5,7 @@ import {
 } from '../config';
 import type { Expense, ExpenseCategory, PendingExpense } from '../types';
 import {
-  getSpreadsheetId,
+  getSpreadsheetIdForEmail,
   saveSpreadsheetId,
 } from './storage';
 import { getValidAccessToken } from './google-auth';
@@ -55,39 +55,52 @@ function mapRowToExpense(
 }
 
 /**
- * Searches Drive for ExpenseTracker_<email>; creates a spreadsheet with
- * Expenses tab + header row if missing. Caches spreadsheetId in AsyncStorage.
+ * Finds or creates ExpenseTracker_<email> in the LOGGED-IN user's Drive.
+ * Uses that user's OAuth access token — never a shared/service sheet.
+ * Client IDs in config.ts only authenticate the app; sheet ownership is per user.
  */
 export async function findOrCreateUserSheet(
   email: string,
   accessToken: string,
 ): Promise<string> {
+  const normalizedEmail = email.trim().toLowerCase();
+
   if (accessToken === 'demo-token') {
     const demoId = 'demo-spreadsheet';
-    await saveSpreadsheetId(demoId);
+    await saveSpreadsheetId(demoId, normalizedEmail);
     return demoId;
   }
 
-  const cached = await getSpreadsheetId();
+  const expectedName = sheetFileName(normalizedEmail);
+  const cached = await getSpreadsheetIdForEmail(normalizedEmail);
+
   if (cached && cached !== 'demo-spreadsheet') {
-    // Verify the file still exists / is accessible
     try {
       const check = await fetch(
-        `${DRIVE_BASE}/files/${cached}?fields=id,trashed`,
+        `${DRIVE_BASE}/files/${cached}?fields=id,name,trashed`,
         { headers: await authHeaders(accessToken) },
       );
       if (check.ok) {
-        const meta = (await check.json()) as { id: string; trashed?: boolean };
-        if (!meta.trashed) return cached;
+        const meta = (await check.json()) as {
+          id: string;
+          name?: string;
+          trashed?: boolean;
+        };
+        // Only reuse cache if this file still belongs to this user email
+        if (
+          !meta.trashed &&
+          meta.name?.toLowerCase() === expectedName.toLowerCase()
+        ) {
+          return cached;
+        }
       }
     } catch {
       // fall through to search/create
     }
   }
 
-  const name = sheetFileName(email);
   const query = encodeURIComponent(
-    `name='${name.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
+    `name='${expectedName.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
   );
   const searchRes = await fetch(
     `${DRIVE_BASE}/files?q=${query}&spaces=drive&fields=files(id,name)`,
@@ -101,16 +114,16 @@ export async function findOrCreateUserSheet(
   };
   const existing = searchData.files?.[0];
   if (existing?.id) {
-    await saveSpreadsheetId(existing.id);
+    await saveSpreadsheetId(existing.id, normalizedEmail);
     return existing.id;
   }
 
-  // Create spreadsheet via Sheets API
+  // Create spreadsheet in THIS user's Drive via their token
   const createRes = await fetch(SHEETS_BASE, {
     method: 'POST',
     headers: await authHeaders(accessToken),
     body: JSON.stringify({
-      properties: { title: name },
+      properties: { title: expectedName },
       sheets: [{ properties: { title: SHEET_TAB_NAME } }],
     }),
   });
@@ -135,7 +148,7 @@ export async function findOrCreateUserSheet(
     throw new Error(`Failed to write sheet headers (${headerRes.status})`);
   }
 
-  await saveSpreadsheetId(spreadsheetId);
+  await saveSpreadsheetId(spreadsheetId, normalizedEmail);
   return spreadsheetId;
 }
 

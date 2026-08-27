@@ -120,10 +120,23 @@ export async function handleGoogleAuthResponse(
     : Date.now() + 3600 * 1000;
 
   const user = await fetchUserProfile(accessToken);
+
+  const store = useAppStore.getState();
+  const previousEmail = store.user?.email?.trim().toLowerCase();
+  const nextEmail = user.email.trim().toLowerCase();
+
+  // Account switch: drop previous user's local sheet cache + expenses
+  if (previousEmail && previousEmail !== nextEmail) {
+    const { clearSpreadsheetId, setPendingQueue } = await import('./storage');
+    await clearSpreadsheetId();
+    await setPendingQueue([]);
+    store.setExpenses([]);
+    store.setSpreadsheetId(null);
+  }
+
   await saveTokens({ accessToken, refreshToken, expiresAt });
   await saveUserProfile(user);
 
-  const store = useAppStore.getState();
   store.setAccessToken(accessToken);
   store.setUser(user);
 
