@@ -47,9 +47,3 @@ export interface PendingExpense {
   amount: number;
   createdAt: string;
 }
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken?: string;
-  expiresAt?: number;
-}

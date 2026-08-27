@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import {
   Alert,
-  Image,
-  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,13 +19,8 @@ import {
   setCurrency as persistCurrency,
   setMonthlyBudget as persistBudget,
   setShakeSensitivity as persistShake,
-  setBackgroundShakeEnabled as persistBackgroundShake,
 } from '../services/storage';
-import { signOut } from '../services/google-auth';
-import {
-  startBackgroundShakeService,
-  stopBackgroundShakeService,
-} from '../services/backgroundShake';
+import { signOut } from '../services/auth';
 import { expensesThisMonth, sumAmount } from '../utils/expenseStats';
 import { formatAmount, getCurrencySymbol } from '../utils/format';
 import { useToast } from '../components/Toast';
@@ -41,17 +34,12 @@ export function SettingsScreen() {
   const monthlyBudget = useAppStore((s) => s.monthlyBudget);
   const budgetAlertsEnabled = useAppStore((s) => s.budgetAlertsEnabled);
   const shakeSensitivity = useAppStore((s) => s.shakeSensitivity);
-  const backgroundShakeEnabled = useAppStore((s) => s.backgroundShakeEnabled);
-  const spreadsheetId = useAppStore((s) => s.spreadsheetId);
   const expenses = useAppStore((s) => s.expenses);
 
   const setCurrency = useAppStore((s) => s.setCurrency);
   const setMonthlyBudget = useAppStore((s) => s.setMonthlyBudget);
   const setBudgetAlertsEnabled = useAppStore((s) => s.setBudgetAlertsEnabled);
   const setShakeSensitivity = useAppStore((s) => s.setShakeSensitivity);
-  const setBackgroundShakeEnabled = useAppStore(
-    (s) => s.setBackgroundShakeEnabled,
-  );
 
   const { showToast } = useToast();
   const [budgetText, setBudgetText] = useState(
@@ -70,43 +58,19 @@ export function SettingsScreen() {
     await persistShake(level);
   };
 
-  const onBackgroundShakeToggle = async (enabled: boolean) => {
-    if (enabled) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Notifications needed',
-          'Android needs a persistent notification while shake-from-home-screen is on.',
-        );
-      }
-      const started = await startBackgroundShakeService(shakeSensitivity);
-      if (!started) {
-        Alert.alert(
-          'Could not start',
-          'Background shake service failed to start on this device.',
-        );
-        return;
-      }
-      Alert.alert(
-        'Shake from anywhere is ON',
-        'Keep the ExpenseTracker notification visible. Do not force-stop the app. Shake your phone even on the home screen to open Add Expense.',
-      );
-    } else {
-      await stopBackgroundShakeService();
-    }
-    setBackgroundShakeEnabled(enabled);
-    await persistBackgroundShake(enabled);
-  };
-
   const onBudgetToggle = async (enabled: boolean) => {
     if (enabled) {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Notifications needed',
-          'Enable notifications to get budget alerts when spend hits 80% and 100%.',
-        );
-        return;
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Notifications needed',
+            'Enable notifications to get budget alerts when spend hits 80% and 100%.',
+          );
+          return;
+        }
+      } catch {
+        // continue without notifications on broken devices
       }
     }
     setBudgetAlertsEnabled(enabled);
@@ -126,18 +90,8 @@ export function SettingsScreen() {
     maybeAlertBudget(budgetAlertsEnabled, n, monthSpend, showToast);
   };
 
-  const openSheet = () => {
-    if (!spreadsheetId || spreadsheetId === 'demo-spreadsheet') {
-      showToast('No Google Sheet linked yet', 'info');
-      return;
-    }
-    void Linking.openURL(
-      `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
-    );
-  };
-
   const onLogout = () => {
-    Alert.alert('Log out?', 'You can sign back in with Google anytime.', [
+    Alert.alert('Log out?', 'Your expenses stay saved for this email on this phone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log out',
@@ -155,15 +109,11 @@ export function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
 
         <View style={styles.profile}>
-          {user?.photoUrl ? (
-            <Image source={{ uri: user.photoUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarLetter}>
-                {(user?.name ?? 'U')[0].toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <View style={[styles.avatar, styles.avatarFallback]}>
+            <Text style={styles.avatarLetter}>
+              {(user?.name ?? 'U')[0].toUpperCase()}
+            </Text>
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{user?.name}</Text>
             <Text style={styles.email}>{user?.email}</Text>
@@ -219,23 +169,6 @@ export function SettingsScreen() {
           </Text>
         )}
 
-        <Text style={styles.section}>Shake to add expense</Text>
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>
-            Shake from anywhere (home screen)
-          </Text>
-          <Switch
-            value={backgroundShakeEnabled}
-            onValueChange={(v) => void onBackgroundShakeToggle(v)}
-            trackColor={{ true: colors.primaryLight, false: colors.border }}
-            thumbColor={backgroundShakeEnabled ? colors.primary : '#f4f4f5'}
-          />
-        </View>
-        <Text style={styles.hint}>
-          When ON, a small notification stays active so shaking works even on
-          your Android home screen. Force-closing the app stops this.
-        </Text>
-
         <Text style={styles.section}>Shake sensitivity</Text>
         <View style={styles.rowWrap}>
           {SHAKE_LEVELS.map((level) => (
@@ -259,12 +192,9 @@ export function SettingsScreen() {
           ))}
         </View>
         <Text style={styles.hint}>
-          Use the + button anytime as a backup if shake is unreliable.
+          Shake your phone on any screen in the app to open Add Expense. Use the
+          + button anytime as a backup.
         </Text>
-
-        <Pressable style={styles.linkBtn} onPress={openSheet}>
-          <Text style={styles.linkText}>Open my Google Sheet</Text>
-        </Pressable>
 
         <Pressable style={styles.logout} onPress={onLogout}>
           <Text style={styles.logoutText}>Log out</Text>
@@ -284,13 +214,6 @@ function maybeAlertBudget(
   const ratio = spend / budget;
   if (ratio >= 1) {
     showToast('Budget limit reached for this month', 'error');
-    void Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Budget limit reached',
-        body: 'You’ve hit 100% of your monthly budget.',
-      },
-      trigger: null,
-    });
   } else if (ratio >= 0.8) {
     showToast('You’ve used 80% of your monthly budget', 'info');
   }
@@ -367,18 +290,8 @@ const styles = StyleSheet.create({
   },
   switchLabel: { ...typography.body, flex: 1, paddingRight: spacing.md },
   hint: { ...typography.caption, marginTop: 4 },
-  linkBtn: {
-    marginTop: spacing.xl,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  linkText: { color: colors.primary, fontWeight: '700' },
   logout: {
-    marginTop: spacing.md,
+    marginTop: spacing.xl,
     backgroundColor: colors.dangerMuted,
     borderRadius: radius.md,
     paddingVertical: 14,

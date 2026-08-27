@@ -8,8 +8,6 @@ import type {
 
 interface AppState {
   user: UserProfile | null;
-  accessToken: string | null;
-  spreadsheetId: string | null;
   expenses: Expense[];
   isAuthenticated: boolean;
   isHydrating: boolean;
@@ -18,13 +16,10 @@ interface AppState {
   monthlyBudget: number | null;
   budgetAlertsEnabled: boolean;
   shakeSensitivity: ShakeSensitivity;
-  backgroundShakeEnabled: boolean;
   addExpenseModalVisible: boolean;
   editingExpense: Expense | null;
 
   setUser: (user: UserProfile | null) => void;
-  setAccessToken: (token: string | null) => void;
-  setSpreadsheetId: (id: string | null) => void;
   setExpenses: (expenses: Expense[]) => void;
   upsertExpense: (expense: Expense) => void;
   removeExpense: (rowId: string) => void;
@@ -34,7 +29,6 @@ interface AppState {
   setMonthlyBudget: (amount: number | null) => void;
   setBudgetAlertsEnabled: (enabled: boolean) => void;
   setShakeSensitivity: (level: ShakeSensitivity) => void;
-  setBackgroundShakeEnabled: (enabled: boolean) => void;
   setAddExpenseModalVisible: (visible: boolean) => void;
   setEditingExpense: (expense: Expense | null) => void;
   logout: () => void;
@@ -42,8 +36,6 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
-  accessToken: null,
-  spreadsheetId: null,
   expenses: [],
   isAuthenticated: false,
   isHydrating: true,
@@ -52,13 +44,10 @@ export const useAppStore = create<AppState>((set) => ({
   monthlyBudget: null,
   budgetAlertsEnabled: false,
   shakeSensitivity: 'medium',
-  backgroundShakeEnabled: true,
   addExpenseModalVisible: false,
   editingExpense: null,
 
   setUser: (user) => set({ user, isAuthenticated: !!user }),
-  setAccessToken: (accessToken) => set({ accessToken }),
-  setSpreadsheetId: (spreadsheetId) => set({ spreadsheetId }),
   setExpenses: (expenses) =>
     set({
       expenses: [...expenses].sort(
@@ -87,16 +76,12 @@ export const useAppStore = create<AppState>((set) => ({
   setMonthlyBudget: (monthlyBudget) => set({ monthlyBudget }),
   setBudgetAlertsEnabled: (budgetAlertsEnabled) => set({ budgetAlertsEnabled }),
   setShakeSensitivity: (shakeSensitivity) => set({ shakeSensitivity }),
-  setBackgroundShakeEnabled: (backgroundShakeEnabled) =>
-    set({ backgroundShakeEnabled }),
   setAddExpenseModalVisible: (addExpenseModalVisible) =>
     set({ addExpenseModalVisible }),
   setEditingExpense: (editingExpense) => set({ editingExpense }),
   logout: () =>
     set({
       user: null,
-      accessToken: null,
-      spreadsheetId: null,
       expenses: [],
       isAuthenticated: false,
       addExpenseModalVisible: false,

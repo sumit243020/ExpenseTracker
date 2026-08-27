@@ -8,7 +8,7 @@ import { colors } from '../constants/theme';
 import { AddExpenseFab } from '../components/AddExpenseFab';
 import { ExpenseFormModal } from '../components/ExpenseFormModal';
 import { ShakeToAddListener } from '../components/ShakeToAddListener';
-import { OfflineSyncListener } from '../components/OfflineSyncListener';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 export type MainTabParamList = {
   Dashboard: undefined;
@@ -39,8 +39,9 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
 export function MainTabs() {
   return (
     <View style={{ flex: 1 }}>
-      <ShakeToAddListener />
-      <OfflineSyncListener />
+      <ErrorBoundary>
+        <ShakeToAddListener />
+      </ErrorBoundary>
       <Tab.Navigator
         screenOptions={({ route }) => ({
           headerShown: false,

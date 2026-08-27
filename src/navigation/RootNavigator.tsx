@@ -10,10 +10,8 @@ import {
   getMonthlyBudget,
   getBudgetAlertsEnabled,
   getShakeSensitivity,
-  getBackgroundShakeEnabled,
-  getSpreadsheetId,
 } from '../services/storage';
-import { restoreSession } from '../services/google-auth';
+import { restoreSession } from '../services/auth';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -26,15 +24,10 @@ export function RootNavigator() {
   const [ready, setReady] = useState(false);
   const isAuthenticated = useAppStore((s) => s.isAuthenticated);
   const setUser = useAppStore((s) => s.setUser);
-  const setAccessToken = useAppStore((s) => s.setAccessToken);
-  const setSpreadsheetId = useAppStore((s) => s.setSpreadsheetId);
   const setCurrency = useAppStore((s) => s.setCurrency);
   const setMonthlyBudget = useAppStore((s) => s.setMonthlyBudget);
   const setBudgetAlertsEnabled = useAppStore((s) => s.setBudgetAlertsEnabled);
   const setShakeSensitivity = useAppStore((s) => s.setShakeSensitivity);
-  const setBackgroundShakeEnabled = useAppStore(
-    (s) => s.setBackgroundShakeEnabled,
-  );
   const setHydrating = useAppStore((s) => s.setHydrating);
 
   useEffect(() => {
@@ -44,20 +37,17 @@ export function RootNavigator() {
         setHydrating(false);
         setReady(true);
       }
-    }, 5000);
+    }, 3000);
 
     (async () => {
       try {
-        const [session, sheetId, currency, budget, alerts, shake, bgShake] =
-          await Promise.all([
-            restoreSession().catch(() => null),
-            getSpreadsheetId().catch(() => null),
-            getCurrency().catch(() => 'INR' as const),
-            getMonthlyBudget().catch(() => null),
-            getBudgetAlertsEnabled().catch(() => false),
-            getShakeSensitivity().catch(() => 'medium' as const),
-            getBackgroundShakeEnabled().catch(() => true),
-          ]);
+        const [session, currency, budget, alerts, shake] = await Promise.all([
+          restoreSession().catch(() => null),
+          getCurrency().catch(() => 'INR' as const),
+          getMonthlyBudget().catch(() => null),
+          getBudgetAlertsEnabled().catch(() => false),
+          getShakeSensitivity().catch(() => 'medium' as const),
+        ]);
 
         if (cancelled) return;
 
@@ -65,12 +55,9 @@ export function RootNavigator() {
         setMonthlyBudget(budget);
         setBudgetAlertsEnabled(alerts);
         setShakeSensitivity(shake);
-        setBackgroundShakeEnabled(bgShake);
 
         if (session) {
-          setUser(session.user);
-          setAccessToken(session.accessToken);
-          if (sheetId) setSpreadsheetId(sheetId);
+          setUser(session);
         }
       } catch (e) {
         console.warn('Hydration failed', e);
@@ -88,14 +75,11 @@ export function RootNavigator() {
       clearTimeout(timeout);
     };
   }, [
-    setAccessToken,
     setBudgetAlertsEnabled,
     setCurrency,
     setHydrating,
     setMonthlyBudget,
     setShakeSensitivity,
-    setBackgroundShakeEnabled,
-    setSpreadsheetId,
     setUser,
   ]);
 

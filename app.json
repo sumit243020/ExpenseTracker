@@ -2,7 +2,7 @@
   "expo": {
     "name": "ExpenseTracker",
     "slug": "expense-tracker",
-    "version": "1.0.4",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.expensetracker.app",
-      "versionCode": 5,
+      "versionCode": 8,
       "adaptiveIcon": {
         "backgroundColor": "#0F766E",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -31,35 +31,20 @@
         "INTERNET",
         "VIBRATE",
         "android.permission.HIGH_SAMPLING_RATE_SENSORS",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.WAKE_LOCK",
-        "android.permission.POST_NOTIFICATIONS",
-        "android.permission.FOREGROUND_SERVICE_DATA_SYNC"
-      ],
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": false,
-          "data": [
-            {
-              "scheme": "expensetracker",
-              "host": "add-expense"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store",
       "@react-native-community/datetimepicker",
-      "expo-web-browser",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow ExpenseTracker to detect phone shakes to add expenses"
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -82,8 +67,7 @@
             "minSdkVersion": 24
           }
         }
-      ],
-      "./plugins/withBackgroundActions.js"
+      ]
     ],
     "extra": {
       "eas": {

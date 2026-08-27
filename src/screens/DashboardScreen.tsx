@@ -41,7 +41,15 @@ export function DashboardScreen() {
 
   const load = useCallback(async () => {
     try {
-      await bootstrapExpenses();
+      await Promise.race([
+        bootstrapExpenses(),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Sheet setup timed out — pull to refresh')),
+            20000,
+          ),
+        ),
+      ]);
     } catch (e) {
       showToast(
         e instanceof Error ? e.message : 'Could not load expenses',
@@ -90,7 +98,7 @@ export function DashboardScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading your sheet…</Text>
+          <Text style={styles.loadingText}>Loading your expenses…</Text>
         </View>
       </SafeAreaView>
     );

@@ -20,9 +20,7 @@ import {
   expensesThisWeek,
   expensesToday,
 } from '../utils/expenseStats';
-import { deleteExpense } from '../services/sheets-api';
-import { getValidAccessToken } from '../services/google-auth';
-import { refreshExpenses } from '../services/expenseSync';
+import { deleteExpenseLocal } from '../services/expenseSync';
 import { useToast } from '../components/Toast';
 
 type DateFilter = 'all' | 'today' | 'week' | 'month';
@@ -30,9 +28,6 @@ type DateFilter = 'all' | 'today' | 'week' | 'month';
 export function ExpenseListScreen() {
   const expenses = useAppStore((s) => s.expenses);
   const currency = useAppStore((s) => s.currency);
-  const spreadsheetId = useAppStore((s) => s.spreadsheetId);
-  const accessToken = useAppStore((s) => s.accessToken);
-  const removeExpense = useAppStore((s) => s.removeExpense);
   const setEditing = useAppStore((s) => s.setEditingExpense);
   const setModal = useAppStore((s) => s.setAddExpenseModalVisible);
   const { showToast } = useToast();
@@ -85,16 +80,7 @@ export function ExpenseListScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            if (!spreadsheetId || !accessToken) throw new Error('Not ready');
-            const token = (await getValidAccessToken()) ?? accessToken;
-            await deleteExpense(
-              spreadsheetId,
-              expense.rowId,
-              token,
-              expenses,
-            );
-            removeExpense(expense.rowId);
-            if (token !== 'demo-token') await refreshExpenses();
+            await deleteExpenseLocal(expense.rowId);
             showToast('Expense deleted', 'success');
           } catch (e) {
             showToast(

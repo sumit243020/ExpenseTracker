@@ -1,120 +1,110 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { APP_NAME, APP_TAGLINE } from '../config';
 import { colors, radius, spacing, typography } from '../constants/theme';
-import {
-  handleGoogleAuthResponse,
-  isGoogleConfigured,
-  useGoogleAuthRequest,
-} from '../services/google-auth';
-import { useAppStore } from '../store/useAppStore';
+import { isValidEmail, loginWithEmail } from '../services/auth';
 
 export function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const setUser = useAppStore((s) => s.setUser);
-  const setAccessToken = useAppStore((s) => s.setAccessToken);
-  const [request, response, promptAsync] = useGoogleAuthRequest();
 
-  useEffect(() => {
-    if (!response) return;
-    (async () => {
-      setLoading(true);
-      try {
-        const ok = await handleGoogleAuthResponse(response);
-        if (!ok && response.type === 'error') {
-          Alert.alert('Sign-in failed', response.error?.message ?? 'Unknown error');
-        }
-      } catch (e) {
-        Alert.alert(
-          'Sign-in failed',
-          e instanceof Error ? e.message : 'Something went wrong',
-        );
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [response]);
-
-  const handleGoogle = async () => {
-    if (!isGoogleConfigured()) {
-      Alert.alert(
-        'Google OAuth not configured',
-        'Add your Web Client ID in src/config.ts, then try again.\n\nYou can use Demo Login below to explore the UI.',
-      );
+  const onContinue = async () => {
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid email', 'Please enter a valid email address.');
       return;
     }
     setLoading(true);
     try {
-      await promptAsync();
+      await loginWithEmail(email, name);
     } catch (e) {
       Alert.alert(
-        'Sign-in failed',
-        e instanceof Error ? e.message : 'Could not open Google Sign-In',
+        'Login failed',
+        e instanceof Error ? e.message : 'Could not sign in',
       );
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleDemo = () => {
-    setUser({
-      id: 'demo',
-      name: 'Demo User',
-      email: 'demo@example.com',
-      photoUrl: undefined,
-    });
-    setAccessToken('demo-token');
-  };
-
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <View style={styles.hero}>
-          <View style={styles.illustration}>
-            <Text style={styles.illustrationIcon}>💼</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.container}>
+          <View style={styles.hero}>
+            <View style={styles.illustration}>
+              <Text style={styles.illustrationIcon}>💼</Text>
+            </View>
+            <Text style={styles.appName}>{APP_NAME}</Text>
+            <Text style={styles.tagline}>{APP_TAGLINE}</Text>
           </View>
-          <Text style={styles.appName}>{APP_NAME}</Text>
-          <Text style={styles.tagline}>{APP_TAGLINE}</Text>
+
+          <View style={styles.form}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholder="you@example.com"
+              placeholderTextColor={colors.textMuted}
+              editable={!loading}
+              returnKeyType="next"
+            />
+
+            <Text style={styles.label}>Name (optional)</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+              placeholderTextColor={colors.textMuted}
+              editable={!loading}
+              returnKeyType="done"
+              onSubmitEditing={() => void onContinue()}
+            />
+
+            <Pressable
+              style={[styles.btn, loading && styles.disabled]}
+              onPress={() => void onContinue()}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Continue</Text>
+              )}
+            </Pressable>
+
+            <Text style={styles.privacy}>
+              Your expenses stay on this device, under your email.
+            </Text>
+          </View>
         </View>
-
-        <View style={styles.footer}>
-          <Pressable
-            style={[styles.googleBtn, (loading || !request) && styles.disabled]}
-            onPress={handleGoogle}
-            disabled={loading || (!request && isGoogleConfigured())}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.text} />
-            ) : (
-              <>
-                <Text style={styles.googleG}>G</Text>
-                <Text style={styles.googleText}>Continue with Google</Text>
-              </>
-            )}
-          </Pressable>
-
-          <Pressable style={styles.demoBtn} onPress={handleDemo}>
-            <Text style={styles.demoText}>Continue with Demo Account</Text>
-          </Pressable>
-
-          <Text style={styles.privacy}>
-            Your data stays in your own Google Sheet
-          </Text>
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
   container: {
     flex: 1,
     paddingHorizontal: spacing.lg,
@@ -146,44 +136,36 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  footer: { gap: spacing.md },
-  googleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
+  form: { gap: spacing.sm },
+  label: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    marginTop: spacing.sm,
+  },
+  input: {
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    fontSize: 16,
+  },
+  btn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingVertical: 14,
-    gap: spacing.sm,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    alignItems: 'center',
   },
   disabled: { opacity: 0.7 },
-  googleG: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#4285F4',
-  },
-  googleText: {
-    ...typography.bodyBold,
-    color: colors.text,
-  },
-  demoBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  demoText: {
-    ...typography.label,
-    color: colors.primary,
-  },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   privacy: {
     ...typography.caption,
     textAlign: 'center',
     color: colors.textMuted,
+    marginTop: spacing.sm,
   },
 });

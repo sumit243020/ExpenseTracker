@@ -1,8 +1,4 @@
-import {
-  accelerometer,
-  setUpdateIntervalForType,
-  SensorTypes,
-} from 'react-native-sensors';
+import { Accelerometer } from 'expo-sensors';
 import type { ShakeSensitivity } from '../types';
 
 export const DELTA_THRESHOLDS: Record<ShakeSensitivity, number> = {
@@ -13,46 +9,61 @@ export const DELTA_THRESHOLDS: Record<ShakeSensitivity, number> = {
 
 export const ADD_EXPENSE_DEEP_LINK = 'expensetracker://add-expense';
 
-/** Shared shake detector using react-native-sensors (keeps running in background FGS). */
+type Sub = { unsubscribe: () => void };
+
+/**
+ * Soft shake subscription via expo-sensors.
+ * Never throws into React lifecycle — returns a no-op unsubscribe on failure.
+ */
 export function subscribeShake(
   getSensitivity: () => ShakeSensitivity,
   onShake: () => void,
   options?: { intervalMs?: number; cooldownMs?: number },
-): { unsubscribe: () => void } {
-  const intervalMs = options?.intervalMs ?? 50;
+): Sub {
+  const intervalMs = options?.intervalMs ?? 100;
   const cooldownMs = options?.cooldownMs ?? 1500;
 
   let lastShakeAt = 0;
   let last = { x: 0, y: 0, z: 0, ready: false };
+  let subscription: { remove: () => void } | null = null;
+  let cancelled = false;
 
-  try {
-    setUpdateIntervalForType(SensorTypes.accelerometer, intervalMs);
-  } catch {
-    // ignore
-  }
+  void (async () => {
+    try {
+      const available = await Accelerometer.isAvailableAsync();
+      if (!available || cancelled) return;
 
-  const subscription = accelerometer.subscribe(({ x, y, z }) => {
-    if (!last.ready) {
-      last = { x, y, z, ready: true };
-      return;
+      Accelerometer.setUpdateInterval(intervalMs);
+      subscription = Accelerometer.addListener(({ x, y, z }) => {
+        try {
+          if (!last.ready) {
+            last = { x, y, z, ready: true };
+            return;
+          }
+          const dx = x - last.x;
+          const dy = y - last.y;
+          const dz = z - last.z;
+          last = { x, y, z, ready: true };
+          const delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (delta <= DELTA_THRESHOLDS[getSensitivity()]) return;
+          const now = Date.now();
+          if (now - lastShakeAt < cooldownMs) return;
+          lastShakeAt = now;
+          onShake();
+        } catch {
+          // ignore sample errors
+        }
+      });
+    } catch (e) {
+      console.warn('Shake sensors unavailable', e);
     }
-    const dx = x - last.x;
-    const dy = y - last.y;
-    const dz = z - last.z;
-    last = { x, y, z, ready: true };
-    const delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (delta <= DELTA_THRESHOLDS[getSensitivity()]) return;
-
-    const now = Date.now();
-    if (now - lastShakeAt < cooldownMs) return;
-    lastShakeAt = now;
-    onShake();
-  });
+  })();
 
   return {
     unsubscribe: () => {
+      cancelled = true;
       try {
-        subscription.unsubscribe();
+        subscription?.remove();
       } catch {
         // ignore
       }
