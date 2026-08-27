@@ -1,0 +1,41 @@
+<ion-content class="login-content" [fullscreen]="true">
+  <div class="login-wrap">
+    <div class="hero">
+      <div class="logo-mark">
+        <ion-icon name="wallet-outline"></ion-icon>
+      </div>
+      <h1>ExpenseTracker</h1>
+      <p class="tagline">Track every rupee, effortlessly</p>
+    </div>
+
+    <div class="form">
+      <ion-label class="field-label">Email</ion-label>
+      <ion-input
+        class="field"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        [(ngModel)]="email"
+        [disabled]="loading"
+      ></ion-input>
+
+      <ion-label class="field-label">Name (optional)</ion-label>
+      <ion-input
+        class="field"
+        type="text"
+        autocomplete="name"
+        placeholder="Your name"
+        [(ngModel)]="name"
+        [disabled]="loading"
+        (keyup.enter)="continue()"
+      ></ion-input>
+
+      <ion-button expand="block" class="continue-btn" (click)="continue()" [disabled]="loading">
+        Continue
+      </ion-button>
+
+      <p class="privacy">Your expenses sync when online, and stay on this device under your email.</p>
+    </div>
+  </div>
+</ion-content>

@@ -1,41 +1,34 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# Root legacy Expo
 node_modules/
-
-# Expo
 .expo/
-dist/
+/dist/
 web-build/
-expo-env.d.ts
+/android/
+/ios/
+*.deb
 
-# Native
-.kotlin/
-*.orig.*
+# Backend
+backend/target/
+backend/data/
+
+# Ionic
+ionic-app/node_modules/
+ionic-app/www/
+ionic-app/.angular/
+ionic-app/android/.gradle/
+ionic-app/android/**/build/
+ionic-app/android/app/build/
+ionic-app/android/build/
+ionic-app/android/local.properties
+ionic-app/android/app/expense-release.keystore
+ionic-app/android/capacitor-cordova-android-plugins/build/
+ionic-app/android/app/src/main/assets/public/
+
+# Secrets / OS
 *.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
+*.keystore
+*.log
 .DS_Store
-*.pem
-
-# local env files
 .env*.local
-
-# typescript
 *.tsbuildinfo
-
-# generated native folders
-/ios
-/android
+expense-tracker/

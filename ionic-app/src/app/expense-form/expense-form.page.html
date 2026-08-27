@@ -1,0 +1,61 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="dismiss()">Cancel</ion-button>
+    </ion-buttons>
+    <ion-title>{{ isEdit ? 'Edit expense' : 'Add expense' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button strong="true" (click)="save()" [disabled]="!canSubmit || saving">
+        Save
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-bg">
+  <div class="page-pad">
+    <ion-label class="field-label">Amount</ion-label>
+    <div class="amount-row">
+      <span class="symbol">{{ currencySymbol }}</span>
+      <ion-input
+        class="amount-input"
+        type="number"
+        inputmode="decimal"
+        placeholder="0"
+        [(ngModel)]="amount"
+      ></ion-input>
+    </div>
+
+    <ion-label class="field-label">Description</ion-label>
+    <ion-input
+      class="field"
+      placeholder="What did you spend on?"
+      maxlength="200"
+      [(ngModel)]="description"
+    ></ion-input>
+
+    <ion-label class="field-label">Category</ion-label>
+    <div class="chips">
+      <ion-chip
+        *ngFor="let c of categories"
+        [outline]="category !== c"
+        [color]="category === c ? 'primary' : undefined"
+        (click)="selectCategory(c)"
+      >
+        {{ c }}
+      </ion-chip>
+    </div>
+
+    <ion-label class="field-label">Date</ion-label>
+    <ion-input class="field" type="date" [(ngModel)]="date"></ion-input>
+
+    <ion-button
+      expand="block"
+      class="save-btn"
+      (click)="save()"
+      [disabled]="!canSubmit || saving"
+    >
+      {{ saving ? 'Saving…' : isEdit ? 'Update expense' : 'Save expense' }}
+    </ion-button>
+  </div>
+</ion-content>

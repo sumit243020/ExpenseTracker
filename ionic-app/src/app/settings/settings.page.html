@@ -1,0 +1,69 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Settings</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-bg">
+  <div class="page-pad">
+    <div class="profile">
+      <div class="avatar">{{ avatarLetter }}</div>
+      <div class="profile-text">
+        <h2>{{ user?.name }}</h2>
+        <p>{{ user?.email }}</p>
+        <ion-badge [color]="isOnline ? 'success' : 'medium'">
+          {{ isOnline ? 'Online' : 'Offline' }}
+        </ion-badge>
+      </div>
+    </div>
+
+    <h3 class="section">Currency</h3>
+    <div class="chips">
+      <ion-chip
+        *ngFor="let c of currencies"
+        [outline]="currency !== c"
+        [color]="currency === c ? 'primary' : undefined"
+        (click)="setCurrency(c)"
+      >
+        {{ c }}
+      </ion-chip>
+    </div>
+
+    <h3 class="section">Monthly budget</h3>
+    <p class="hint">This month’s spend: {{ formatSpend() }}</p>
+    <div class="budget-row">
+      <ion-input
+        class="field"
+        type="number"
+        inputmode="decimal"
+        placeholder="e.g. 20000"
+        [(ngModel)]="budgetText"
+      ></ion-input>
+      <ion-button (click)="saveBudget()">Save</ion-button>
+    </div>
+
+    <h3 class="section">Shake sensitivity</h3>
+    <p class="hint">Shake your device to quickly add an expense.</p>
+    <div class="chips">
+      <ion-chip
+        *ngFor="let s of shakeLevels"
+        [outline]="shakeSensitivity !== s"
+        [color]="shakeSensitivity === s ? 'primary' : undefined"
+        (click)="setShake(s)"
+      >
+        {{ s }}
+      </ion-chip>
+    </div>
+
+    <h3 class="section">API server</h3>
+    <p class="hint">Default for Android emulator: http://10.0.2.2:8080</p>
+    <div class="budget-row">
+      <ion-input class="field" type="url" [(ngModel)]="apiUrl"></ion-input>
+      <ion-button fill="outline" (click)="applyApiUrl()">Apply</ion-button>
+    </div>
+
+    <ion-button expand="block" color="danger" fill="outline" class="logout" (click)="logout()">
+      Log out
+    </ion-button>
+  </div>
+</ion-content>

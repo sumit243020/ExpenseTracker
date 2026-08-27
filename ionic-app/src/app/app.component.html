@@ -1,0 +1,7 @@
+<ion-app>
+  <div class="boot" *ngIf="!ready">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Loading ExpenseTracker…</p>
+  </div>
+  <ion-router-outlet *ngIf="ready"></ion-router-outlet>
+</ion-app>

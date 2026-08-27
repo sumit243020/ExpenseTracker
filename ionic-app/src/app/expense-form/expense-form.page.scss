@@ -1,0 +1,50 @@
+.field-label {
+  display: block;
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.amount-row {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 4px 12px;
+}
+
+.symbol {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f766e;
+  margin-right: 8px;
+}
+
+.amount-input {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.field {
+  --background: #fff;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.save-btn {
+  margin-top: 28px;
+  --background: #0f766e;
+  --border-radius: 12px;
+  height: 48px;
+  font-weight: 600;
+}

@@ -1,0 +1,107 @@
+.greeting {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sub {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.month-card {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+  color: #fff;
+}
+
+.month-label {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 13px;
+}
+
+.month-amount {
+  margin: 6px 0 0;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.stat-chip {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.stat-value {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.section-title {
+  margin: 24px 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.breakdown {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.cat {
+  flex: 1;
+  color: #0f172a;
+}
+
+.amt {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.empty {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.recent-list {
+  background: transparent;
+  padding-bottom: 72px;
+}
+
+.amount-note {
+  color: #0f766e;
+  font-weight: 600;
+}

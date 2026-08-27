@@ -1,0 +1,18 @@
+.chips {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 4px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.empty {
+  margin-top: 24px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+ion-note {
+  font-weight: 600;
+}

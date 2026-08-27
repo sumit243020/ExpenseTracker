@@ -1,0 +1,67 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Dashboard</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-bg">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="page-pad">
+    <div class="greeting-row">
+      <div>
+        <h2 class="greeting">Hi, {{ firstName }}</h2>
+        <p class="sub">Here’s your spending overview</p>
+      </div>
+    </div>
+
+    <div class="month-card">
+      <p class="month-label">This Month’s Total</p>
+      <p class="month-amount">{{ format(monthTotal) }}</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-chip">
+        <span class="stat-label">Today</span>
+        <span class="stat-value">{{ format(todayTotal) }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-label">This Week</span>
+        <span class="stat-value">{{ format(weekTotal) }}</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-label">This Month</span>
+        <span class="stat-value">{{ format(monthTotal) }}</span>
+      </div>
+    </div>
+
+    <h3 class="section-title">By category</h3>
+    <div *ngIf="breakdown.length === 0" class="empty">No spending this month yet.</div>
+    <div class="breakdown" *ngFor="let b of breakdown">
+      <div class="dot" [style.background]="b.color"></div>
+      <span class="cat">{{ b.category }}</span>
+      <span class="amt">{{ format(b.amount) }}</span>
+    </div>
+
+    <h3 class="section-title">Recent</h3>
+    <div *ngIf="recent.length === 0" class="empty">Add your first expense with + or a shake.</div>
+    <ion-list lines="none" class="recent-list" *ngIf="recent.length">
+      <ion-item button detail="false" *ngFor="let e of recent" (click)="openEdit(e)">
+        <ion-icon slot="start" [name]="iconFor(e.category)" [style.color]="colorFor(e.category)"></ion-icon>
+        <ion-label>
+          <h3>{{ e.description }}</h3>
+          <p>{{ e.category }} · {{ displayDate(e.date) }}</p>
+        </ion-label>
+        <ion-note slot="end" class="amount-note">{{ format(e.amount) }}</ion-note>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="primary" (click)="openAdd()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

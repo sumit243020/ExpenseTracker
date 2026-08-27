@@ -1,0 +1,37 @@
+/*
+ * App Global CSS
+ */
+
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/* Force light UI (no system dark palette) */
+
+.page-bg {
+  --background: #f8fafc;
+}
+
+.page-pad {
+  padding: 16px 16px 32px;
+}
+
+.page-pad-x {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+ion-toolbar {
+  --border-width: 0;
+}
+
+ion-title {
+  font-weight: 700;
+}

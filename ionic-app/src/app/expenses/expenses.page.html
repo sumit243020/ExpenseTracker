@@ -1,0 +1,50 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Expenses</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openAdd()">
+        <ion-icon slot="icon-only" name="add-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      [(ngModel)]="query"
+      (ionInput)="applyFilter()"
+      placeholder="Search description"
+      debounce="200"
+    ></ion-searchbar>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-bg">
+  <div class="chips page-pad-x">
+    <ion-chip
+      *ngFor="let c of categories"
+      [outline]="category !== c"
+      [color]="category === c ? 'primary' : undefined"
+      (click)="selectCategory(c)"
+    >
+      {{ c }}
+    </ion-chip>
+  </div>
+
+  <div class="page-pad-x empty" *ngIf="filtered.length === 0">No expenses match.</div>
+
+  <ion-list lines="full">
+    <ion-item-sliding *ngFor="let e of filtered">
+      <ion-item button detail="false" (click)="openEdit(e)">
+        <ion-icon slot="start" [name]="iconFor(e.category)" [style.color]="colorFor(e.category)"></ion-icon>
+        <ion-label>
+          <h3>{{ e.description }}</h3>
+          <p>{{ e.category }} · {{ displayDate(e.date) }}</p>
+        </ion-label>
+        <ion-note slot="end" color="primary">{{ format(e.amount) }}</ion-note>
+      </ion-item>
+      <ion-item-options side="end">
+        <ion-item-option color="primary" (click)="openEdit(e)">Edit</ion-item-option>
+        <ion-item-option color="danger" (click)="confirmDelete(e)">Delete</ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+</ion-content>
