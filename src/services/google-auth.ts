@@ -219,6 +219,12 @@ export async function restoreSession(): Promise<{
 }
 
 export async function signOut(): Promise<void> {
+  try {
+    const { stopBackgroundShakeService } = await import('./backgroundShake');
+    await stopBackgroundShakeService();
+  } catch {
+    // ignore
+  }
   await clearAllAuthData();
   useAppStore.getState().logout();
 }

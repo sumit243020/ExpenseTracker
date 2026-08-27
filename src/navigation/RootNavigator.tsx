@@ -10,6 +10,7 @@ import {
   getMonthlyBudget,
   getBudgetAlertsEnabled,
   getShakeSensitivity,
+  getBackgroundShakeEnabled,
   getSpreadsheetId,
 } from '../services/storage';
 import { restoreSession } from '../services/google-auth';
@@ -31,6 +32,9 @@ export function RootNavigator() {
   const setMonthlyBudget = useAppStore((s) => s.setMonthlyBudget);
   const setBudgetAlertsEnabled = useAppStore((s) => s.setBudgetAlertsEnabled);
   const setShakeSensitivity = useAppStore((s) => s.setShakeSensitivity);
+  const setBackgroundShakeEnabled = useAppStore(
+    (s) => s.setBackgroundShakeEnabled,
+  );
   const setHydrating = useAppStore((s) => s.setHydrating);
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export function RootNavigator() {
 
     (async () => {
       try {
-        const [session, sheetId, currency, budget, alerts, shake] =
+        const [session, sheetId, currency, budget, alerts, shake, bgShake] =
           await Promise.all([
             restoreSession().catch(() => null),
             getSpreadsheetId().catch(() => null),
@@ -52,6 +56,7 @@ export function RootNavigator() {
             getMonthlyBudget().catch(() => null),
             getBudgetAlertsEnabled().catch(() => false),
             getShakeSensitivity().catch(() => 'medium' as const),
+            getBackgroundShakeEnabled().catch(() => true),
           ]);
 
         if (cancelled) return;
@@ -60,6 +65,7 @@ export function RootNavigator() {
         setMonthlyBudget(budget);
         setBudgetAlertsEnabled(alerts);
         setShakeSensitivity(shake);
+        setBackgroundShakeEnabled(bgShake);
 
         if (session) {
           setUser(session.user);
@@ -88,6 +94,7 @@ export function RootNavigator() {
     setHydrating,
     setMonthlyBudget,
     setShakeSensitivity,
+    setBackgroundShakeEnabled,
     setSpreadsheetId,
     setUser,
   ]);

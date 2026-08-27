@@ -46,4 +46,5 @@ export const STORAGE_KEYS = {
   monthlyBudget: 'et_monthly_budget',
   budgetAlertsEnabled: 'et_budget_alerts',
   shakeSensitivity: 'et_shake_sensitivity',
+  backgroundShakeEnabled: 'et_background_shake',
 } as const;

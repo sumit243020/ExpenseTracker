@@ -18,6 +18,7 @@ interface AppState {
   monthlyBudget: number | null;
   budgetAlertsEnabled: boolean;
   shakeSensitivity: ShakeSensitivity;
+  backgroundShakeEnabled: boolean;
   addExpenseModalVisible: boolean;
   editingExpense: Expense | null;
 
@@ -33,6 +34,7 @@ interface AppState {
   setMonthlyBudget: (amount: number | null) => void;
   setBudgetAlertsEnabled: (enabled: boolean) => void;
   setShakeSensitivity: (level: ShakeSensitivity) => void;
+  setBackgroundShakeEnabled: (enabled: boolean) => void;
   setAddExpenseModalVisible: (visible: boolean) => void;
   setEditingExpense: (expense: Expense | null) => void;
   logout: () => void;
@@ -50,6 +52,7 @@ export const useAppStore = create<AppState>((set) => ({
   monthlyBudget: null,
   budgetAlertsEnabled: false,
   shakeSensitivity: 'medium',
+  backgroundShakeEnabled: true,
   addExpenseModalVisible: false,
   editingExpense: null,
 
@@ -84,6 +87,8 @@ export const useAppStore = create<AppState>((set) => ({
   setMonthlyBudget: (monthlyBudget) => set({ monthlyBudget }),
   setBudgetAlertsEnabled: (budgetAlertsEnabled) => set({ budgetAlertsEnabled }),
   setShakeSensitivity: (shakeSensitivity) => set({ shakeSensitivity }),
+  setBackgroundShakeEnabled: (backgroundShakeEnabled) =>
+    set({ backgroundShakeEnabled }),
   setAddExpenseModalVisible: (addExpenseModalVisible) =>
     set({ addExpenseModalVisible }),
   setEditingExpense: (editingExpense) => set({ editingExpense }),

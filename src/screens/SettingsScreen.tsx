@@ -21,8 +21,13 @@ import {
   setCurrency as persistCurrency,
   setMonthlyBudget as persistBudget,
   setShakeSensitivity as persistShake,
+  setBackgroundShakeEnabled as persistBackgroundShake,
 } from '../services/storage';
 import { signOut } from '../services/google-auth';
+import {
+  startBackgroundShakeService,
+  stopBackgroundShakeService,
+} from '../services/backgroundShake';
 import { expensesThisMonth, sumAmount } from '../utils/expenseStats';
 import { formatAmount, getCurrencySymbol } from '../utils/format';
 import { useToast } from '../components/Toast';
@@ -36,6 +41,7 @@ export function SettingsScreen() {
   const monthlyBudget = useAppStore((s) => s.monthlyBudget);
   const budgetAlertsEnabled = useAppStore((s) => s.budgetAlertsEnabled);
   const shakeSensitivity = useAppStore((s) => s.shakeSensitivity);
+  const backgroundShakeEnabled = useAppStore((s) => s.backgroundShakeEnabled);
   const spreadsheetId = useAppStore((s) => s.spreadsheetId);
   const expenses = useAppStore((s) => s.expenses);
 
@@ -43,6 +49,9 @@ export function SettingsScreen() {
   const setMonthlyBudget = useAppStore((s) => s.setMonthlyBudget);
   const setBudgetAlertsEnabled = useAppStore((s) => s.setBudgetAlertsEnabled);
   const setShakeSensitivity = useAppStore((s) => s.setShakeSensitivity);
+  const setBackgroundShakeEnabled = useAppStore(
+    (s) => s.setBackgroundShakeEnabled,
+  );
 
   const { showToast } = useToast();
   const [budgetText, setBudgetText] = useState(
@@ -59,6 +68,34 @@ export function SettingsScreen() {
   const onShake = async (level: ShakeSensitivity) => {
     setShakeSensitivity(level);
     await persistShake(level);
+  };
+
+  const onBackgroundShakeToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Notifications needed',
+          'Android needs a persistent notification while shake-from-home-screen is on.',
+        );
+      }
+      const started = await startBackgroundShakeService(shakeSensitivity);
+      if (!started) {
+        Alert.alert(
+          'Could not start',
+          'Background shake service failed to start on this device.',
+        );
+        return;
+      }
+      Alert.alert(
+        'Shake from anywhere is ON',
+        'Keep the ExpenseTracker notification visible. Do not force-stop the app. Shake your phone even on the home screen to open Add Expense.',
+      );
+    } else {
+      await stopBackgroundShakeService();
+    }
+    setBackgroundShakeEnabled(enabled);
+    await persistBackgroundShake(enabled);
   };
 
   const onBudgetToggle = async (enabled: boolean) => {
@@ -182,6 +219,23 @@ export function SettingsScreen() {
           </Text>
         )}
 
+        <Text style={styles.section}>Shake to add expense</Text>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>
+            Shake from anywhere (home screen)
+          </Text>
+          <Switch
+            value={backgroundShakeEnabled}
+            onValueChange={(v) => void onBackgroundShakeToggle(v)}
+            trackColor={{ true: colors.primaryLight, false: colors.border }}
+            thumbColor={backgroundShakeEnabled ? colors.primary : '#f4f4f5'}
+          />
+        </View>
+        <Text style={styles.hint}>
+          When ON, a small notification stays active so shaking works even on
+          your Android home screen. Force-closing the app stops this.
+        </Text>
+
         <Text style={styles.section}>Shake sensitivity</Text>
         <View style={styles.rowWrap}>
           {SHAKE_LEVELS.map((level) => (
@@ -205,9 +259,7 @@ export function SettingsScreen() {
           ))}
         </View>
         <Text style={styles.hint}>
-          Shake works while ExpenseTracker is open on screen. Force-close /
-          killed apps cannot listen for shakes on Android. Use the + button
-          anytime as a backup.
+          Use the + button anytime as a backup if shake is unreliable.
         </Text>
 
         <Pressable style={styles.linkBtn} onPress={openSheet}>

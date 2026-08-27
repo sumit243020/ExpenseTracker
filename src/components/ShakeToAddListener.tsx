@@ -1,117 +1,153 @@
 import React, { useEffect, useRef } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
-import { Accelerometer } from 'expo-sensors';
+import { AppState, type AppStateStatus, Linking } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import { useAppStore } from '../store/useAppStore';
-import type { ShakeSensitivity } from '../types';
+import { ADD_EXPENSE_DEEP_LINK, subscribeShake } from '../services/shakeDetect';
+import {
+  isBackgroundShakeRunning,
+  setBackgroundShakeSensitivity,
+  startBackgroundShakeService,
+  stopBackgroundShakeService,
+} from '../services/backgroundShake';
+import {
+  getBackgroundShakeEnabled,
+} from '../services/storage';
+
+function openAddExpenseModal() {
+  const store = useAppStore.getState();
+  store.setEditingExpense(null);
+  store.setAddExpenseModalVisible(true);
+}
+
+function handleIncomingUrl(url: string | null) {
+  if (!url) return;
+  if (
+    url.includes('add-expense') ||
+    url.startsWith(ADD_EXPENSE_DEEP_LINK) ||
+    url.includes('://add')
+  ) {
+    openAddExpenseModal();
+  }
+}
 
 /**
- * Delta (jerk) thresholds — Expo Accelerometer is in G's (~1.0 at rest),
- * so absolute magnitude checks are unreliable. We detect sudden changes.
- * lower number = more sensitive
- */
-const DELTA_THRESHOLDS: Record<ShakeSensitivity, number> = {
-  low: 1.6,
-  medium: 1.05,
-  high: 0.7,
-};
-
-/**
- * Global shake detector while the app process is alive (foreground).
- * Android does not allow continuous shake listening after the app is killed.
+ * Foreground + optional background (home-screen) shake → Add Expense.
+ * Background requires Settings toggle; shows a persistent notification while active.
  */
 export function ShakeToAddListener() {
   const sensitivity = useAppStore((s) => s.shakeSensitivity);
   const modalVisible = useAppStore((s) => s.addExpenseModalVisible);
-  const setVisible = useAppStore((s) => s.setAddExpenseModalVisible);
-  const setEditing = useAppStore((s) => s.setEditingExpense);
+  const backgroundShakeEnabled = useAppStore((s) => s.backgroundShakeEnabled);
+  const isAuthenticated = useAppStore((s) => s.isAuthenticated);
 
-  const lastShakeAt = useRef(0);
-  const lastSample = useRef({ x: 0, y: 0, z: 0, ready: false });
   const modalVisibleRef = useRef(modalVisible);
-  const sensitivityRef = useRef(sensitivity);
-  const setVisibleRef = useRef(setVisible);
-  const setEditingRef = useRef(setEditing);
-
   modalVisibleRef.current = modalVisible;
+  const sensitivityRef = useRef(sensitivity);
   sensitivityRef.current = sensitivity;
-  setVisibleRef.current = setVisible;
-  setEditingRef.current = setEditing;
 
+  // Deep link / notification → open modal
   useEffect(() => {
-    let sub: { remove: () => void } | null = null;
-    let cancelled = false;
-    let appState: AppStateStatus = AppState.currentState;
+    if (!isAuthenticated) return;
 
-    const stop = () => {
-      sub?.remove();
-      sub = null;
-      lastSample.current = { x: 0, y: 0, z: 0, ready: false };
+    const subUrl = Linking.addEventListener('url', ({ url }) => {
+      handleIncomingUrl(url);
+    });
+    void Linking.getInitialURL().then(handleIncomingUrl);
+
+    const subNotif = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        const data = response.notification.request.content.data as {
+          openAddExpense?: boolean;
+        };
+        if (data?.openAddExpense) openAddExpenseModal();
+        handleIncomingUrl(ADD_EXPENSE_DEEP_LINK);
+      },
+    );
+
+    return () => {
+      subUrl.remove();
+      subNotif.remove();
     };
+  }, [isAuthenticated]);
 
-    const start = async () => {
-      if (cancelled || sub) return;
-      try {
-        const available = await Accelerometer.isAvailableAsync();
-        if (!available || cancelled) return;
+  // Keep sensitivity synced into background service
+  useEffect(() => {
+    setBackgroundShakeSensitivity(sensitivity);
+  }, [sensitivity]);
 
-        // Faster sampling = more reliable shake detection
-        Accelerometer.setUpdateInterval(50);
-
-        sub = Accelerometer.addListener(({ x, y, z }) => {
-          if (modalVisibleRef.current) return;
-          if (appState !== 'active') return;
-
-          const prev = lastSample.current;
-          if (!prev.ready) {
-            lastSample.current = { x, y, z, ready: true };
-            return;
-          }
-
-          const dx = x - prev.x;
-          const dy = y - prev.y;
-          const dz = z - prev.z;
-          const delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          lastSample.current = { x, y, z, ready: true };
-
-          const threshold = DELTA_THRESHOLDS[sensitivityRef.current];
-          const now = Date.now();
-          if (delta > threshold && now - lastShakeAt.current > 1200) {
-            lastShakeAt.current = now;
-            void Haptics.notificationAsync(
-              Haptics.NotificationFeedbackType.Success,
-            ).catch(() => undefined);
-            setEditingRef.current(null);
-            setVisibleRef.current(true);
-          }
-        });
-      } catch (e) {
-        console.warn('Shake detector unavailable', e);
-      }
-    };
-
-    if (appState === 'active') {
-      void start();
+  // Start/stop Android foreground service for home-screen shake
+  useEffect(() => {
+    if (!isAuthenticated) {
+      void stopBackgroundShakeService();
+      return;
     }
 
-    const onAppState = (next: AppStateStatus) => {
-      appState = next;
-      if (next === 'active') {
-        void start();
-      } else {
-        // Pause while minimized to save battery; resume when opened again
-        stop();
+    let cancelled = false;
+    (async () => {
+      const enabled =
+        backgroundShakeEnabled || (await getBackgroundShakeEnabled());
+      if (cancelled) return;
+      if (enabled) {
+        await startBackgroundShakeService(sensitivityRef.current);
+      } else if (isBackgroundShakeRunning()) {
+        await stopBackgroundShakeService();
       }
-    };
-
-    const appSub = AppState.addEventListener('change', onAppState);
+    })();
 
     return () => {
       cancelled = true;
+    };
+  }, [backgroundShakeEnabled, isAuthenticated]);
+
+  // In-app / foreground shake (always on while authenticated)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let sub: { unsubscribe: () => void } | null = null;
+    let appState: AppStateStatus = AppState.currentState;
+
+    const stop = () => {
+      sub?.unsubscribe();
+      sub = null;
+    };
+
+    const start = () => {
+      if (sub) return;
+      // When background service is running it already listens — avoid double fire
+      // still listen in foreground for instant modal without notification hop
+      sub = subscribeShake(
+        () => sensitivityRef.current,
+        () => {
+          if (modalVisibleRef.current) return;
+          if (appState !== 'active') return;
+          void Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          ).catch(() => undefined);
+          openAddExpenseModal();
+        },
+      );
+    };
+
+    if (appState === 'active') start();
+
+    const appSub = AppState.addEventListener('change', (next) => {
+      appState = next;
+      if (next === 'active') {
+        start();
+        // If user returned via deep link, ensure modal opens
+        void Linking.getInitialURL().then(handleIncomingUrl);
+      } else {
+        // Foreground listener stops; background FGS continues if enabled
+        stop();
+      }
+    });
+
+    return () => {
       appSub.remove();
       stop();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   return null;
 }

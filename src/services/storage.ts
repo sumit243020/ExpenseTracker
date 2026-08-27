@@ -165,6 +165,22 @@ export async function setShakeSensitivity(
   await AsyncStorage.setItem(STORAGE_KEYS.shakeSensitivity, level);
 }
 
+export async function getBackgroundShakeEnabled(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.backgroundShakeEnabled);
+  // Default ON so shake-from-home-screen works after login
+  if (raw == null) return true;
+  return raw === 'true';
+}
+
+export async function setBackgroundShakeEnabled(
+  enabled: boolean,
+): Promise<void> {
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.backgroundShakeEnabled,
+    String(enabled),
+  );
+}
+
 /** Clears all auth-related local data on logout / account switch. */
 export async function clearAllAuthData(): Promise<void> {
   await clearTokens();
