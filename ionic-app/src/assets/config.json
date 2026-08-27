@@ -1,0 +1,4 @@
+# Default config (overwritten at container start by docker-entrypoint.sh)
+{
+  "apiUrl": ""
+}

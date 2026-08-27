@@ -1,7 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom, timeout } from 'rxjs';
-import { environment } from '../../environments/environment';
 import {
   CurrencyCode,
   Expense,
@@ -9,6 +8,7 @@ import {
   ShakeSensitivity,
   UserProfile,
 } from '../models/expense.models';
+import { ConfigService } from './config.service';
 import { StorageService } from './storage.service';
 
 export interface LoginResponse {
@@ -18,15 +18,18 @@ export interface LoginResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private baseUrl = environment.apiUrl.replace(/\/$/, '');
-
   constructor(
     private readonly http: HttpClient,
     private readonly storage: StorageService,
+    private readonly config: ConfigService,
   ) {}
 
+  private get baseUrl(): string {
+    return this.config.apiUrl.replace(/\/$/, '');
+  }
+
   setApiUrl(url: string): void {
-    this.baseUrl = url.replace(/\/$/, '');
+    this.config.setApiUrl(url);
   }
 
   getApiUrl(): string {
@@ -42,30 +45,26 @@ export class ApiService {
     return headers;
   }
 
-  private async request<T>(fn: () => Promise<T>): Promise<T> {
-    return fn();
-  }
-
   async login(email: string, name?: string): Promise<LoginResponse> {
     if (!this.baseUrl) {
       throw new Error('API URL not configured');
     }
-    return this.request(() =>
-      firstValueFrom(
-        this.http
-          .post<LoginResponse>(`${this.baseUrl}/api/auth/login`, {
-            email,
-            name: name?.trim() || undefined,
-          })
-          .pipe(timeout(8000)),
-      ),
+    return firstValueFrom(
+      this.http
+        .post<LoginResponse>(`${this.baseUrl}/api/auth/login`, {
+          email,
+          name: name?.trim() || undefined,
+        })
+        .pipe(timeout(20000)),
     );
   }
 
   async me(): Promise<UserProfile> {
     const headers = await this.headers();
     return firstValueFrom(
-      this.http.get<UserProfile>(`${this.baseUrl}/api/auth/me`, { headers }).pipe(timeout(8000)),
+      this.http
+        .get<UserProfile>(`${this.baseUrl}/api/auth/me`, { headers })
+        .pipe(timeout(20000)),
     );
   }
 
@@ -79,8 +78,10 @@ export class ApiService {
     const headers = await this.headers();
     return firstValueFrom(
       this.http
-        .put<UserProfile>(`${this.baseUrl}/api/auth/settings`, body, { headers })
-        .pipe(timeout(8000)),
+        .put<UserProfile>(`${this.baseUrl}/api/auth/settings`, body, {
+          headers,
+        })
+        .pipe(timeout(20000)),
     );
   }
 
@@ -89,7 +90,7 @@ export class ApiService {
     return firstValueFrom(
       this.http
         .get<Expense[]>(`${this.baseUrl}/api/expenses`, { headers })
-        .pipe(timeout(10000)),
+        .pipe(timeout(20000)),
     );
   }
 
@@ -98,7 +99,7 @@ export class ApiService {
     return firstValueFrom(
       this.http
         .post<Expense>(`${this.baseUrl}/api/expenses`, input, { headers })
-        .pipe(timeout(8000)),
+        .pipe(timeout(20000)),
     );
   }
 
@@ -106,8 +107,10 @@ export class ApiService {
     const headers = await this.headers();
     return firstValueFrom(
       this.http
-        .put<Expense>(`${this.baseUrl}/api/expenses/${rowId}`, input, { headers })
-        .pipe(timeout(8000)),
+        .put<Expense>(`${this.baseUrl}/api/expenses/${rowId}`, input, {
+          headers,
+        })
+        .pipe(timeout(20000)),
     );
   }
 
@@ -116,7 +119,7 @@ export class ApiService {
     await firstValueFrom(
       this.http
         .delete<void>(`${this.baseUrl}/api/expenses/${rowId}`, { headers })
-        .pipe(timeout(8000)),
+        .pipe(timeout(20000)),
     );
   }
 }
